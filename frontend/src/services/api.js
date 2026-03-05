@@ -39,6 +39,22 @@ export const predictJob = async (title, description, salary = '', userId = null)
   return response.data;
 };
 
+export const predictJobFromImage = async (file, salary = '', userId = null) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('salary', salary || '');
+  if (userId) {
+    formData.append('user_id', userId);
+  }
+
+  const response = await api.post('/api/predict-from-image', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data;
+};
+
 export const getHistory = async (userId) => {
   const response = await api.get(`/api/history/${userId}`);
   return response.data;

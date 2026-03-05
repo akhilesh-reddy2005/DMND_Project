@@ -19,6 +19,9 @@ pymongo==4.6.1
 # Authentication
 firebase-admin==6.5.0
 
+# OCR
+google-cloud-vision==3.12.1
+
 # Environment Variables
 python-dotenv==1.0.0
 

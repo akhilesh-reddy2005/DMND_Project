@@ -203,14 +203,6 @@ function Result() {
               )}
             </div>
 
-            {/* Model Info */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6 mb-8">
-              <p className="text-sm text-gray-600">
-                <span className="font-semibold">Detection Model:</span> Machine Learning (94% accuracy) | 
-                <span className="font-semibold ml-4">Processing Time:</span> &lt; 2 seconds
-              </p>
-            </div>
-
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link

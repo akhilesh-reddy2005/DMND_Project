@@ -37,6 +37,15 @@ instance/
 .env.local
 .env.production
 
+# Cloud credentials (keep local only)
+*.json
+!package*.json
+!*.ipynb
+visionkey.json
+*firebase-admin*.json
+*service-account*.json
+scriptify-ai-*.json
+
 # Database
 *.db
 *.sqlite

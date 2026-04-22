@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { predictJob, predictJobFromImage } from "../services/api";
+import { predictJob } from "../services/api";
 import { useAuth } from "../authContext";
 
 export default function Home() {
@@ -15,7 +15,6 @@ export default function Home() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [selectedFile, setSelectedFile] = useState(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -23,27 +22,21 @@ export default function Home() {
     setError("");
   };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files?.[0] || null;
-    setSelectedFile(file);
-    setError("");
-  };
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    // Validate: if no file, require text input
-    if (!selectedFile) {
-      if (!formData.title.trim() || !formData.description.trim()) {
-        setError("Job title and description are required if no file is uploaded");
-        return;
-      }
+    // Validate text input
+    if (!formData.title.trim() || !formData.description.trim()) {
+      setError("Job title and description are required");
+      return;
+    }
 
-      if (formData.description.length < 50) {
-        setError("Description must be at least 50 characters");
-        return;
-      }
+    if (formData.description.length < 50) {
+      setError("Description must be at least 50 characters");
+      return;
     }
 
     setIsLoading(true);
@@ -51,15 +44,13 @@ export default function Home() {
     try {
       const userId = currentUser?.uid || null;
 
-      // Call Vision OCR if file is uploaded, otherwise use text input
-      const result = selectedFile
-        ? await predictJobFromImage(selectedFile, formData.salary, userId)
-        : await predictJob(
-            formData.title,
-            formData.description,
-            formData.salary,
-            userId
-          );
+      // Call text-based prediction
+      const result = await predictJob(
+        formData.title,
+        formData.description,
+        formData.salary,
+        userId
+      );
 
       const recordTitle = result.title || formData.title;
       const recordDescription = result.description || formData.description;
@@ -84,7 +75,11 @@ export default function Home() {
 
       navigate("/result", { state: result });
     } catch (err) {
-      setError("Failed to analyze job posting");
+      const message =
+        err?.response?.data?.error ||
+        err?.message ||
+        "Failed to analyze job posting";
+      setError(message);
       console.error(err);
     }
 
@@ -190,73 +185,7 @@ export default function Home() {
               />
             </div>
 
-            {/* Divider */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">OR</span>
-              </div>
-            </div>
 
-            {/* File Upload */}
-            <div>
-              <label className="font-semibold block mb-2">
-                Upload Job Posting (Image, PDF, or Word Doc)
-              </label>
-
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-indigo-500 transition">
-                <input
-                  type="file"
-                  onChange={handleFileChange}
-                  accept="image/*,.pdf,.doc,.docx"
-                  className="hidden"
-                  id="file-upload"
-                />
-                <label
-                  htmlFor="file-upload"
-                  className="cursor-pointer flex flex-col items-center"
-                >
-                  <svg
-                    className="w-12 h-12 text-gray-400 mb-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                    />
-                  </svg>
-                  <span className="text-indigo-600 font-medium">
-                    Click to upload
-                  </span>
-                  <span className="text-xs text-gray-500 mt-1">
-                    {selectedFile
-                      ? selectedFile.name
-                      : "PNG, JPG, PDF, or Word (max 10MB)"}
-                  </span>
-                </label>
-              </div>
-
-              {selectedFile && (
-                <div className="mt-2 flex items-center justify-between bg-indigo-50 p-3 rounded">
-                  <span className="text-sm text-indigo-700">
-                    {selectedFile.name}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedFile(null)}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    Remove
-                  </button>
-                </div>
-              )}
-            </div>
 
             {/* Submit */}
             <button

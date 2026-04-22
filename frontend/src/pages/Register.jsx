@@ -2,6 +2,35 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../authContext';
 
+const getAuthErrorMessage = (err, method = 'email') => {
+  const code = err?.code || '';
+
+  if (code === 'auth/operation-not-allowed') {
+    if (method === 'google') {
+      return 'Google sign-in is disabled in Firebase Console. Enable Google provider in Authentication > Sign-in method.';
+    }
+    return 'Email/Password sign-in is disabled in Firebase Console. Enable Email/Password in Authentication > Sign-in method.';
+  }
+
+  if (code === 'auth/email-already-in-use') {
+    return 'This email is already registered. Please sign in instead.';
+  }
+
+  if (code === 'auth/invalid-email') {
+    return 'Please enter a valid email address.';
+  }
+
+  if (code === 'auth/weak-password') {
+    return 'Password is too weak. Use at least 6 characters.';
+  }
+
+  if (code === 'auth/too-many-requests') {
+    return 'Too many attempts. Please wait a few minutes and try again.';
+  }
+
+  return err?.message || 'Failed to create account.';
+};
+
 const Register = () => {
   const [formData, setFormData] = useState({
     displayName: '',
@@ -47,7 +76,7 @@ const Register = () => {
       navigate('/');
     } catch (err) {
       console.error(err);
-      setError(err.message || 'Failed to create account');
+      setError(getAuthErrorMessage(err, 'email'));
     } finally {
       setLoading(false);
     }
@@ -61,7 +90,7 @@ const Register = () => {
       navigate('/');
     } catch (err) {
       console.error(err);
-      setError(err.message || 'Failed to sign up with Google');
+      setError(getAuthErrorMessage(err, 'google'));
     } finally {
       setLoading(false);
     }

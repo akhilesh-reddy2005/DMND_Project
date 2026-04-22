@@ -74,6 +74,10 @@ fake_job_postings.csv
 *.log
 logs/
 
+# Node.js
+node_modules/
+frontend/node_modules/
+
 # OS
 Thumbs.db
 .DS_Store

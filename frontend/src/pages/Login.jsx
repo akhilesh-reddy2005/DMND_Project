@@ -1,12 +1,40 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../authContext';
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { getAuthInstance } from '../firebase';
+
+const getAuthErrorMessage = (err, method = 'email') => {
+  const code = err?.code || '';
+
+  if (code === 'auth/operation-not-allowed') {
+    if (method === 'google') {
+      return 'Google sign-in is disabled in Firebase Console. Enable Google provider in Authentication > Sign-in method.';
+    }
+    return 'Email/Password sign-in is disabled in Firebase Console. Enable Email/Password in Authentication > Sign-in method.';
+  }
+
+  if (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found') {
+    return 'Invalid email or password.';
+  }
+
+  if (code === 'auth/invalid-email') {
+    return 'Please enter a valid email address.';
+  }
+
+  if (code === 'auth/too-many-requests') {
+    return 'Too many attempts. Please wait a few minutes and try again.';
+  }
+
+  return err?.message || 'Failed to login. Please try again.';
+};
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
   
   const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
@@ -26,7 +54,7 @@ const Login = () => {
       navigate('/');
     } catch (err) {
       console.error(err);
-      setError(err.message || 'Failed to login. Please check your credentials.');
+      setError(getAuthErrorMessage(err, 'email'));
     } finally {
       setLoading(false);
     }
@@ -40,7 +68,35 @@ const Login = () => {
       navigate('/');
     } catch (err) {
       console.error(err);
-      setError(err.message || 'Failed to login with Google');
+      setError(getAuthErrorMessage(err, 'google'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError('Please enter your email address');
+      return;
+    }
+
+    try {
+      setError('');
+      setLoading(true);
+      const auth = getAuthInstance();
+      if (!auth) {
+        setError('Firebase authentication not initialized');
+        return;
+      }
+      await sendPasswordResetEmail(auth, email);
+      setResetSent(true);
+    } catch (err) {
+      console.error(err);
+      if (err?.code === 'auth/user-not-found') {
+        setError('No account found with this email address');
+      } else {
+        setError(err?.message || 'Failed to send reset email');
+      }
     } finally {
       setLoading(false);
     }
@@ -111,6 +167,23 @@ const Login = () => {
             </button>
           </div>
         </form>
+
+        {resetSent && (
+          <div className="bg-green-50 border border-green-400 text-green-700 px-4 py-3 rounded-lg text-sm">
+            ✓ Password reset email sent! Check your inbox and follow the link to set a new password.
+          </div>
+        )}
+
+        <div className="text-center text-sm">
+          <button
+            type="button"
+            onClick={handleForgotPassword}
+            disabled={loading || resetSent}
+            className="text-indigo-600 hover:text-indigo-500 font-medium transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Forgot your password?
+          </button>
+        </div>
 
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">

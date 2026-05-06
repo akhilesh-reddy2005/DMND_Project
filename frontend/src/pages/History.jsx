@@ -21,17 +21,14 @@ function History() {
 
   const fetchHistory = async () => {
     try {
-      // Try to fetch from MongoDB first
       const data = await getHistory(currentUser.uid);
       let predictions = Array.isArray(data) ? data : [];
       
-      // If MongoDB returns empty, try localStorage
       if (predictions.length === 0) {
         const historyKey = `history_${currentUser.uid}`;
         const localData = localStorage.getItem(historyKey);
         if (localData) {
           predictions = JSON.parse(localData);
-          console.log('Loaded from localStorage:', predictions);
         }
       }
       
@@ -39,20 +36,15 @@ function History() {
       setError('');
     } catch (err) {
       console.error('Error fetching from MongoDB, trying localStorage:', err);
-      
-      // Fallback to localStorage if API fails
       try {
         const historyKey = `history_${currentUser.uid}`;
         const localData = localStorage.getItem(historyKey);
         if (localData) {
           const predictions = JSON.parse(localData);
           setPredictions(predictions);
-          setError('');
-        } else {
-          setError('');
         }
+        setError('');
       } catch (localErr) {
-        console.error('Error loading from localStorage:', localErr);
         setError('Failed to load history');
       }
     } finally {
@@ -73,6 +65,8 @@ function History() {
     });
   };
 
+  const getPredictionDate = (prediction) => prediction?.timestamp || prediction?.created_at || null;
+
   const getFilteredPredictions = () => {
     let filtered = predictions;
     if (filterType !== 'all') {
@@ -84,178 +78,217 @@ function History() {
         p.description?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
-    return filtered.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    return filtered.sort((a, b) => new Date(getPredictionDate(b)) - new Date(getPredictionDate(a)));
   };
 
   const filteredPredictions = getFilteredPredictions();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8 selection:bg-brand-500 selection:text-white relative z-0">
+      
+      {/* Background Blobs */}
+      <div className="fixed top-20 left-10 w-96 h-96 rounded-full bg-brand-200/40 blur-3xl -z-10 animate-blob"></div>
+      <div className="fixed bottom-20 right-10 w-[500px] h-[500px] rounded-full bg-indigo-200/40 blur-3xl -z-10 animate-blob animation-delay-4000"></div>
+
       <div className="max-w-6xl mx-auto">
         
-        <div className="mb-12">
-          <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-3">Analysis History</h1>
-          <p className="text-lg text-gray-600">View all your previous job posting analyses</p>
+        {/* Header */}
+        <div className="mb-10 animate-fade-down">
+          <h1 className="text-4xl sm:text-5xl font-outfit font-bold text-slate-900 mb-4 tracking-tight">
+            Analysis History
+          </h1>
+          <p className="text-lg text-slate-500">
+            Review your previously analyzed job postings
+          </p>
         </div>
 
         {error && (
-          <div className="rounded-xl border border-red-200 bg-red-50 p-4 mb-8">
-            <p className="text-red-700 font-medium">❌ {error}</p>
+          <div className="glass border-red-200 bg-red-50/80 p-4 mb-8 rounded-2xl animate-fade-in shadow-sm">
+            <p className="text-red-700 font-medium flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              {error}
+            </p>
           </div>
         )}
 
         {isLoading ? (
-          <div className="text-center py-20">
-            <div className="inline-block">
-              <div className="w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+          <div className="text-center py-32 animate-fade-in">
+            <div className="relative w-20 h-20 mx-auto mb-6">
+              <div className="absolute inset-0 rounded-full border-4 border-slate-100"></div>
+              <div className="absolute inset-0 rounded-full border-4 border-brand-500 border-t-transparent animate-spin"></div>
             </div>
-            <p className="mt-6 text-gray-600 font-medium">Loading your history...</p>
+            <p className="text-slate-500 font-medium text-lg">Loading history securely...</p>
           </div>
         ) : predictions.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
-            <div className="text-6xl mb-4">📭</div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">No Predictions Yet</h3>
-            <p className="text-gray-600 mb-8">You haven't analyzed any job postings yet. Start by analyzing your first one!</p>
-            <Link to="/" className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-indigo-200 transition-all">
-              Start Analyzing
+          <div className="glass rounded-3xl p-16 text-center animate-fade-in shadow-xl">
+            <div className="w-24 h-24 mx-auto bg-brand-50 rounded-full flex items-center justify-center mb-6 text-brand-500">
+              <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+            </div>
+            <h3 className="text-2xl font-outfit font-bold text-slate-900 mb-3">No Analyses Yet</h3>
+            <p className="text-slate-500 mb-8 max-w-sm mx-auto">You haven't run any job postings through our AI verification yet.</p>
+            <Link to="/" className="inline-flex items-center gap-2 px-8 py-3.5 bg-slate-900 text-white font-medium rounded-xl hover:bg-brand-600 transition-all duration-300 shadow-lg hover:shadow-brand-500/30 hover:-translate-y-0.5">
+              Start Analyzing Now
             </Link>
           </div>
         ) : (
-          <>
-            <div className="bg-white rounded-xl border border-gray-200 p-6 mb-8">
-              <div className="grid sm:grid-cols-3 gap-4">
-                <div className="sm:col-span-2">
+          <div className="animate-fade-up" style={{ animationDelay: '100ms' }}>
+            
+            {/* Filters Bar */}
+            <div className="glass rounded-2xl p-4 mb-8 shadow-md">
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="md:col-span-2 relative">
+                  <svg className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                   <input
                     type="text"
                     placeholder="Search by job title or description..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none"
+                    className="w-full pl-11 pr-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition-all placeholder:text-slate-400 text-slate-700"
                   />
                 </div>
-                <select
-                  value={filterType}
-                  onChange={(e) => setFilterType(e.target.value)}
-                  className="px-4 py-3 rounded-lg border border-gray-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none"
-                >
-                  <option value="all">All Predictions</option>
-                  <option value="fake">Fake Only</option>
-                  <option value="genuine">Genuine Only</option>
-                </select>
+                <div className="relative">
+                  <select
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value)}
+                    className="w-full px-4 py-3 appearance-none bg-slate-50/50 border border-slate-200 rounded-xl focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition-all text-slate-700 cursor-pointer"
+                  >
+                    <option value="all">All Outcomes</option>
+                    <option value="fake">Fake Only</option>
+                    <option value="genuine">Genuine Only</option>
+                  </select>
+                  <svg className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                </div>
               </div>
             </div>
 
-            <div className="mb-6 flex items-center gap-2 text-gray-600">
-              <span className="font-semibold text-gray-900">{filteredPredictions.length}</span>
-              <span>result{filteredPredictions.length !== 1 ? 's' : ''}</span>
+            <div className="mb-6 flex items-center gap-2 text-sm text-slate-500 font-medium px-2">
+              Found <span className="px-2 py-0.5 bg-slate-200 rounded-md text-slate-700">{filteredPredictions.length}</span> records
             </div>
 
+            {/* Data Table / Cards */}
             {filteredPredictions.length === 0 ? (
-              <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-                <div className="text-4xl mb-4">🔍</div>
-                <p className="text-gray-600">No results found matching your criteria</p>
+              <div className="glass rounded-3xl p-16 text-center shadow-md">
+                <div className="text-4xl mb-4 opacity-50">🔍</div>
+                <p className="text-slate-500 text-lg">No results found matching your filters.</p>
               </div>
             ) : (
-              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-lg">
+              <div className="glass rounded-3xl overflow-hidden shadow-xl border border-white/60">
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-gray-200 bg-gray-50">
-                        <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Date</th>
-                        <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Job Title</th>
-                        <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Prediction</th>
-                        <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Confidence</th>
-                        <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700">Action</th>
+                      <tr className="bg-slate-50/80 border-b border-slate-100">
+                        <th className="px-6 py-4 font-outfit font-semibold text-slate-600 text-sm whitespace-nowrap">Analyzed On</th>
+                        <th className="px-6 py-4 font-outfit font-semibold text-slate-600 text-sm">Job Title</th>
+                        <th className="px-6 py-4 font-outfit font-semibold text-slate-600 text-sm">Verdict</th>
+                        <th className="px-6 py-4 font-outfit font-semibold text-slate-600 text-sm whitespace-nowrap">Confidence</th>
+                        <th className="px-6 py-4 font-outfit font-semibold text-slate-600 text-sm text-center">Action</th>
                       </tr>
                     </thead>
-                    <tbody>
-                      {filteredPredictions.map((pred, idx) => (
-                        <tr key={idx} className="border-b border-gray-200 hover:bg-indigo-50 transition-colors">
-                          <td className="px-6 py-4 text-sm text-gray-600">{formatDate(pred.timestamp)}</td>
-                          <td className="px-6 py-4"><span className="text-gray-900 font-medium">{pred.title.substring(0, 40)}{pred.title.length > 40 ? '...' : ''}</span></td>
-                          <td className="px-6 py-4">
-                            <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold ${pred.prediction === 'Fake' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                              {pred.prediction === 'Fake' ? '🚫' : '✅'} {pred.prediction}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                <div className={`h-full ${pred.prediction === 'Fake' ? 'bg-red-600' : 'bg-green-600'}`} style={{ width: `${pred.confidence}%` }}></div>
+                    <tbody className="divide-y divide-slate-100/50">
+                      {filteredPredictions.map((pred, idx) => {
+                        const isFake = pred.prediction === 'Fake';
+                        return (
+                          <tr key={idx} className="group hover:bg-slate-50/50 transition-colors duration-200">
+                            <td className="px-6 py-5 text-sm text-slate-500 whitespace-nowrap">
+                              {formatDate(getPredictionDate(pred))}
+                            </td>
+                            <td className="px-6 py-5">
+                              <span className="text-slate-800 font-medium line-clamp-1">{pred.title || "Untitled Job"}</span>
+                            </td>
+                            <td className="px-6 py-5">
+                              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-wide uppercase ${isFake ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'}`}>
+                                {isFake ? 'Fake' : 'Genuine'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-5">
+                              <div className="flex items-center gap-3 max-w-[120px]">
+                                <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                  <div className={`h-full rounded-full ${isFake ? 'bg-red-500' : 'bg-emerald-500'}`} style={{ width: `${pred.confidence}%` }}></div>
+                                </div>
+                                <span className="text-sm font-semibold text-slate-700 w-10">{pred.confidence}%</span>
                               </div>
-                              <span className="text-sm font-semibold text-gray-900">{pred.confidence}%</span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-center">
-                            <button onClick={() => { setSelectedPrediction(pred); setShowModal(true); }} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-semibold">View</button>
-                          </td>
-                        </tr>
-                      ))}
+                            </td>
+                            <td className="px-6 py-5 text-center">
+                              <button 
+                                onClick={() => { setSelectedPrediction(pred); setShowModal(true); }} 
+                                className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg hover:border-brand-500 hover:text-brand-600 transition-colors text-sm font-medium shadow-sm group-hover:shadow"
+                              >
+                                Review
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
               </div>
             )}
-
-            <div className="mt-12 text-center">
-              <Link to="/" className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-indigo-200 transition-all">
-                Analyze Another Job
-              </Link>
-            </div>
-          </>
+          </div>
         )}
       </div>
 
+      {/* Modern Modal */}
       {showModal && selectedPrediction && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className={`px-6 sm:px-8 py-6 border-b border-gray-200 flex items-center justify-between ${selectedPrediction.prediction === 'Fake' ? 'bg-red-50' : 'bg-green-50'}`}>
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Details</h2>
-              <button onClick={() => setShowModal(false)} className="text-gray-500 hover:text-gray-700 text-2xl">×</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-fade-in">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowModal(false)}></div>
+          
+          {/* Modal Content */}
+          <div className="relative w-full max-w-2xl glass rounded-3xl shadow-2xl overflow-hidden animate-fade-up flex flex-col max-h-[90vh]">
+            
+            {/* Modal Header */}
+            <div className={`px-8 py-6 border-b border-white/50 flex items-center justify-between ${selectedPrediction.prediction === 'Fake' ? 'bg-gradient-to-r from-red-50 to-white' : 'bg-gradient-to-r from-emerald-50 to-white'}`}>
+              <h2 className="text-2xl font-outfit font-bold text-slate-900 tracking-tight">Analysis Report</h2>
+              <button onClick={() => setShowModal(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
             </div>
 
-            <div className="px-6 sm:px-8 py-6 space-y-6">
-              <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Job Title</p>
-                <p className="text-lg font-semibold text-gray-900">{selectedPrediction.title}</p>
+            {/* Modal Body */}
+            <div className="p-8 overflow-y-auto custom-scrollbar flex-1 space-y-8 bg-white/50">
+              
+              <div className="grid sm:grid-cols-2 gap-8">
+                <div className="p-5 rounded-2xl bg-white border border-slate-100 shadow-sm relative overflow-hidden">
+                  <div className={`absolute top-0 right-0 w-20 h-20 -mr-10 -mt-10 rounded-full opacity-20 ${selectedPrediction.prediction === 'Fake' ? 'bg-red-500' : 'bg-emerald-500'}`}></div>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1">Verdict</p>
+                  <p className={`text-3xl font-outfit font-bold ${selectedPrediction.prediction === 'Fake' ? 'text-red-600' : 'text-emerald-600'}`}>
+                    {selectedPrediction.prediction}
+                  </p>
+                </div>
+                
+                <div className="p-5 rounded-2xl bg-white border border-slate-100 shadow-sm relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-20 h-20 -mr-10 -mt-10 rounded-full opacity-20 bg-brand-500"></div>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1">Confidence Score</p>
+                  <p className="text-3xl font-outfit font-bold text-brand-600">{selectedPrediction.confidence}%</p>
+                </div>
               </div>
 
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Job Description</p>
-                <div className="bg-gray-50 rounded-lg p-4 max-h-32 overflow-y-auto border-l-4 border-indigo-500">
-                  <p className="text-gray-700 text-sm whitespace-pre-wrap leading-relaxed">{selectedPrediction.description}</p>
+                <p className="text-sm font-semibold text-slate-500 mb-2">Job Title</p>
+                <p className="text-lg font-medium text-slate-900 bg-white p-4 rounded-xl border border-slate-100">{selectedPrediction.title || 'N/A'}</p>
+              </div>
+
+              <div>
+                <p className="text-sm font-semibold text-slate-500 mb-2">Job Description</p>
+                <div className="bg-slate-50 p-5 rounded-xl border border-slate-100 max-h-48 overflow-y-auto custom-scrollbar shadow-inner">
+                  <p className="text-slate-700 text-sm whitespace-pre-wrap leading-relaxed">{selectedPrediction.description || 'N/A'}</p>
                 </div>
               </div>
 
               {selectedPrediction.salary && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Salary</p>
-                  <p className="text-gray-900">{selectedPrediction.salary}</p>
+                  <p className="text-sm font-semibold text-slate-500 mb-2">Salary Data</p>
+                  <p className="text-slate-900 bg-white p-4 rounded-xl border border-slate-100">{selectedPrediction.salary}</p>
                 </div>
               )}
-
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
-                <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Prediction</p>
-                  <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-bold ${selectedPrediction.prediction === 'Fake' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                    {selectedPrediction.prediction === 'Fake' ? '❌' : '✅'} {selectedPrediction.prediction}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Confidence</p>
-                  <p className="text-3xl font-bold text-indigo-600">{selectedPrediction.confidence}%</p>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-gray-200">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Analyzed</p>
-                <p className="text-gray-700">{formatDate(selectedPrediction.timestamp)}</p>
+              
+              <div className="flex items-center gap-2 text-xs font-medium text-slate-400 pb-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                Analyzed on {formatDate(getPredictionDate(selectedPrediction))}
               </div>
             </div>
 
-            <div className="px-6 sm:px-8 py-4 bg-gray-50 border-t border-gray-200 flex gap-3 justify-end">
-              <button onClick={() => setShowModal(false)} className="px-6 py-2 bg-gray-200 text-gray-900 font-semibold rounded-lg hover:bg-gray-300 transition">Close</button>
-            </div>
           </div>
         </div>
       )}

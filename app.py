@@ -16,9 +16,6 @@ from nltk.tokenize import word_tokenize
 import firebase_admin
 from firebase_admin import credentials, auth
 from functools import wraps
-from google.cloud import vision
-import requests
-import base64
 from config import DB_NAME as DEFAULT_DB_NAME, MONGODB_URI as DEFAULT_MONGODB_URI
 
 load_dotenv()
@@ -51,17 +48,6 @@ except:
     nltk.download('stopwords')
 
 stop_words = set(stopwords.words('english'))
-
-# ==========================
-# Google Vision Setup
-# ==========================
-GOOGLE_VISION_API_KEY = os.getenv("GOOGLE_VISION_API_KEY")
-vision_client = None
-
-if GOOGLE_VISION_API_KEY:
-    print("✓ Google Vision API key loaded")
-else:
-    print("⚠ Google Vision API key not found - image OCR will be disabled")
 
 # ==========================
 # MongoDB Setup
@@ -196,83 +182,6 @@ def predict_job(title, description, salary=""):
         "confidence": round(confidence * 100, 2)
     }
 
-
-def extract_text_from_image(image_bytes):
-
-    if not GOOGLE_VISION_API_KEY:
-        return "", "Google Vision API key not configured"
-
-    try:
-        # Encode image to base64
-        image_base64 = base64.b64encode(image_bytes).decode('utf-8')
-
-        # Call Vision API REST endpoint
-        url = f"https://vision.googleapis.com/v1/images:annotate?key={GOOGLE_VISION_API_KEY}"
-        
-        payload = {
-            "requests": [
-                {
-                    "image": {
-                        "content": image_base64
-                    },
-                    "features": [
-                        {
-                            "type": "DOCUMENT_TEXT_DETECTION"
-                        }
-                    ]
-                }
-            ]
-        }
-        
-        response = requests.post(url, json=payload, timeout=30)
-        response.raise_for_status()
-        
-        result = response.json()
-        
-        # Check for API errors
-        if "error" in result:
-            error_msg = result["error"].get("message", "Unknown error")
-            print(f"Vision API error: {error_msg}")
-            return "", error_msg
-        
-        # Extract text from response
-        if "responses" in result and len(result["responses"]) > 0:
-            responses = result["responses"][0]
-            if "error" in responses:
-                error_msg = responses["error"].get("message", "Unknown error in response")
-                print(f"Vision API response error: {error_msg}")
-                return "", error_msg
-            if "fullTextAnnotation" in responses:
-                full_text = responses["fullTextAnnotation"].get("text", "")
-                return full_text.strip(), None
-        
-        return "", "No text detected in image"
-        
-    except requests.exceptions.RequestException as e:
-        print(f"Vision API request failed: {e}")
-        return "", f"Vision API error: {str(e)}"
-    except Exception as e:
-        print(f"Vision API error: {e}")
-        return "", f"Vision API error: {str(e)}"
-
-
-def build_title_description_from_ocr(ocr_text):
-
-    if not ocr_text:
-        return "", ""
-
-    lines = [line.strip() for line in ocr_text.splitlines() if line.strip()]
-    if not lines:
-        return "", ""
-
-    title = lines[0][:160]
-    description = "\n".join(lines[1:]).strip()
-
-    if not description:
-        description = ocr_text[:3000]
-
-    return title, description
-
 # ==========================
 # Save Prediction
 # ==========================
@@ -352,12 +261,12 @@ def api_predict():
 
 
 # --------------------------
-# Predict Job from Image/File (Vision OCR)
+# Predict Job from Image/File
 # --------------------------
 @app.route("/api/predict-from-image", methods=["POST"])
 @verify_firebase_token
 def api_predict_from_image():
-    # Image upload temporarily disabled
+    # Image upload is intentionally disabled in this text-only version.
     return jsonify({"error": "Image upload is temporarily disabled. Please use the text input fields to analyze job postings."}), 501
 
 
